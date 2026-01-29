@@ -9,7 +9,7 @@
         - "{{ ansible_distribution | lower }}.yml"
         - "{{ ansible_os_family | lower }}.yml"
       paths:
-        - "../vars"
+        - "{{ role_path }}/vars"
   tags: always
 
 - name: Display security baseline configuration
