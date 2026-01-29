@@ -85,7 +85,7 @@
 
 - name: Verify audit rules are loaded
   ansible.builtin.command: auditctl -l
-  register: audit_rules_check
+  register: security_baseline_audit_rules_check
   changed_when: false
   failed_when: false
   tags:
@@ -94,8 +94,8 @@
 
 - name: Display loaded audit rules count
   ansible.builtin.debug:
-    msg: "Loaded {{ audit_rules_check.stdout_lines | length }} audit rules"
-  when: audit_rules_check is defined
+    msg: "Loaded {{ security_baseline_audit_rules_check.stdout_lines | length }} audit rules"
+  when: security_baseline_audit_rules_check is defined
   tags:
     - auditd
     - verify

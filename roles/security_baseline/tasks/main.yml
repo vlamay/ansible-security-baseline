@@ -32,6 +32,9 @@
 # =============================================================================
 - name: Backup existing configurations
   when: security_baseline_backup_configs | default(true)
+  tags:
+    - backup
+    - ssh
   block:
     - name: Ensure backup directory exists
       ansible.builtin.file:
@@ -48,15 +51,15 @@
         remote_src: yes
         mode: '0600'
       failed_when: false
-  tags:
-    - backup
-    - ssh
 
 # =============================================================================
 # Install Security Packages
 # =============================================================================
 - name: Install security packages
   when: security_baseline_install_security_packages | default(true)
+  tags:
+    - packages
+    - install
   block:
     - name: Update package cache (Debian/Ubuntu)
       ansible.builtin.apt:
@@ -70,9 +73,6 @@
         state: present
       retries: 3
       delay: 5
-  tags:
-    - packages
-    - install
 
 # =============================================================================
 # Apply Security Hardening Tasks
@@ -125,6 +125,9 @@
 # =============================================================================
 - name: Configure fail2ban
   when: security_baseline_enable_fail2ban | default(true)
+  tags:
+    - fail2ban
+    - intrusion-prevention
   block:
     - name: Ensure fail2ban is installed
       ansible.builtin.package:
@@ -146,15 +149,15 @@
         name: "{{ security_baseline_fail2ban_service }}"
         state: started
         enabled: yes
-  tags:
-    - fail2ban
-    - intrusion-prevention
 
 # =============================================================================
 # Automatic Updates
 # =============================================================================
 - name: Configure automatic security updates
   when: security_baseline_enable_auto_updates | default(true)
+  tags:
+    - updates
+    - auto-updates
   block:
     - name: Ensure unattended-upgrades is installed
       ansible.builtin.package:
@@ -171,42 +174,39 @@
           APT::Periodic::AutocleanInterval "7";
         mode: '0644'
       when: ansible_os_family == "Debian"
-  tags:
-    - updates
-    - auto-updates
 
 # =============================================================================
 # Final Verification
 # =============================================================================
 - name: Verify security baseline applied
+  tags:
+    - verify
+    - validation
   block:
     - name: Check SSH service status
       ansible.builtin.service:
         name: "{{ security_baseline_ssh_service }}"
-      register: ssh_service_status
+      register: security_baseline_ssh_status
 
     - name: Verify SSH is running
       ansible.builtin.assert:
         that:
-          - ssh_service_status.status.ActiveState == "active"
+          - security_baseline_ssh_status.status.ActiveState == "active"
         fail_msg: "SSH service is not running!"
         success_msg: "SSH service is running properly"
 
     - name: Check firewall status
       ansible.builtin.command: ufw status
-      register: ufw_status
+      register: security_baseline_fw_status
       changed_when: false
       when: security_baseline_configure_firewall | default(true)
 
     - name: Display firewall status
       ansible.builtin.debug:
-        msg: "{{ ufw_status.stdout_lines }}"
-      when: 
+        msg: "{{ security_baseline_fw_status.stdout_lines }}"
+      when:
         - security_baseline_configure_firewall | default(true)
-        - ufw_status is defined
-  tags:
-    - verify
-    - validation
+        - security_baseline_fw_status is defined
 
 - name: Generate compliance report
   ansible.builtin.template:

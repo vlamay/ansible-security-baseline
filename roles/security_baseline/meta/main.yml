@@ -32,8 +32,4 @@ galaxy_info:
 dependencies: []
 
 # Collections required for this role
-collections:
-  - name: community.general
-    version: ">=3.0.0"
-  - name: ansible.posix
-    version: ">=1.0.0"
+# Install via: ansible-galaxy collection install -r requirements.yml

@@ -94,7 +94,7 @@
 
 - name: Check UFW status
   ansible.builtin.command: ufw status verbose
-  register: ufw_status
+  register: security_baseline_ufw_status
   changed_when: false
   tags:
     - firewall
@@ -102,7 +102,7 @@
 
 - name: Display UFW status
   ansible.builtin.debug:
-    msg: "{{ ufw_status.stdout_lines }}"
+    msg: "{{ security_baseline_ufw_status.stdout_lines }}"
   tags:
     - firewall
     - verify
