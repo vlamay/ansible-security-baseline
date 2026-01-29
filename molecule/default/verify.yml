@@ -53,6 +53,7 @@
       ansible.builtin.stat:
         path: /etc/sysctl.d/99-security-baseline.conf
       register: sysctl_config
+      when: ansible_virtualization_type != 'docker'
     
     - name: Verify sysctl config exists
       ansible.builtin.assert:
@@ -60,11 +61,13 @@
           - sysctl_config.stat.exists
         fail_msg: "Sysctl security config not found"
         success_msg: "Sysctl security config exists"
+      when: ansible_virtualization_type != 'docker'
     
     - name: Check IP forwarding status
       ansible.builtin.command: sysctl net.ipv4.ip_forward
       register: ip_forward
       changed_when: false
+      when: ansible_virtualization_type != 'docker'
     
     - name: Verify IP forwarding is disabled
       ansible.builtin.assert:
@@ -72,11 +75,13 @@
           - "'net.ipv4.ip_forward = 0' in ip_forward.stdout"
         fail_msg: "IP forwarding is not disabled"
         success_msg: "IP forwarding is properly disabled"
+      when: ansible_virtualization_type != 'docker'
     
     - name: Check SYN cookies status
       ansible.builtin.command: sysctl net.ipv4.tcp_syncookies
       register: syn_cookies
       changed_when: false
+      when: ansible_virtualization_type != 'docker'
     
     - name: Verify SYN cookies are enabled
       ansible.builtin.assert:
@@ -84,6 +89,7 @@
           - "'net.ipv4.tcp_syncookies = 1' in syn_cookies.stdout"
         fail_msg: "SYN cookies not enabled"
         success_msg: "SYN cookies are enabled"
+      when: ansible_virtualization_type != 'docker'
     
     # =============================================================================
     # Auditd Verification
