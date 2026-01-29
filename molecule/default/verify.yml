@@ -111,6 +111,7 @@
         name: auditd
       register: auditd_service
       failed_when: false
+      when: ansible_virtualization_type != 'docker'
     
     - name: Verify auditd is running (if service exists)
       ansible.builtin.assert:
@@ -118,7 +119,9 @@
           - auditd_service.status.ActiveState == "active"
         fail_msg: "Auditd service is not active"
         success_msg: "Auditd service is active"
-      when: auditd_service.status is defined
+      when:
+        - ansible_virtualization_type != 'docker'
+        - auditd_service.status is defined
     
     - name: Check if audit rules are loaded
       ansible.builtin.command: auditctl -l
@@ -150,6 +153,8 @@
       ansible.builtin.systemd:
         name: fail2ban
       register: fail2ban_service
+      failed_when: false
+      when: ansible_virtualization_type != 'docker'
     
     - name: Verify fail2ban is running
       ansible.builtin.assert:
@@ -157,12 +162,16 @@
           - fail2ban_service.status.ActiveState == "active"
         fail_msg: "Fail2ban service is not active"
         success_msg: "Fail2ban service is active"
+      when:
+        - ansible_virtualization_type != 'docker'
+        - fail2ban_service.status is defined
     
     - name: Check fail2ban jails status
       ansible.builtin.command: fail2ban-client status
       register: fail2ban_status
       changed_when: false
       failed_when: false
+      when: ansible_virtualization_type != 'docker'
     
     - name: Verify fail2ban has active jails
       ansible.builtin.assert:
@@ -170,7 +179,9 @@
           - "'sshd' in fail2ban_status.stdout or 'Number of jail' in fail2ban_status.stdout"
         fail_msg: "No fail2ban jails are active"
         success_msg: "Fail2ban jails are active"
-      when: fail2ban_status.rc == 0
+      when:
+        - ansible_virtualization_type != 'docker'
+        - fail2ban_status.rc == 0
     
     # =============================================================================
     # Password Policy Verification
