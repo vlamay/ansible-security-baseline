@@ -79,10 +79,7 @@
     name: "{{ security_baseline_auditd_service }}"
     state: started
     enabled: yes
-  register: security_baseline_auditd_service_result
-  failed_when:
-    - security_baseline_auditd_service_result.failed
-    - ansible_virtualization_type != 'docker'
+  when: ansible_virtualization_type != 'docker'
   tags:
     - auditd
     - service
@@ -92,6 +89,7 @@
   register: security_baseline_audit_rules_check
   changed_when: false
   failed_when: false
+  when: ansible_virtualization_type != 'docker'
   tags:
     - auditd
     - verify

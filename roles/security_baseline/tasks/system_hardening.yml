@@ -72,7 +72,7 @@
     - { key: 'net.ipv4.tcp_keepalive_probes', value: '5' }
     - { key: 'net.ipv4.tcp_keepalive_intvl', value: '15' }
 
-  failed_when: false  # Some parameters may not be available on all systems
+  when: ansible_virtualization_type != 'docker'
   notify: Reload sysctl
   tags:
     - sysctl
