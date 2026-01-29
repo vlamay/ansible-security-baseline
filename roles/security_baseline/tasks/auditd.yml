@@ -97,7 +97,9 @@
 - name: Display loaded audit rules count
   ansible.builtin.debug:
     msg: "Loaded {{ security_baseline_audit_rules_check.stdout_lines | length }} audit rules"
-  when: security_baseline_audit_rules_check is defined
+  when:
+    - security_baseline_audit_rules_check is defined
+    - not security_baseline_audit_rules_check.skipped | default(false)
   tags:
     - auditd
     - verify
