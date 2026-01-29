@@ -13,3 +13,6 @@
   
   roles:
     - role: security_baseline
+  
+  vars:
+    security_baseline_backup_configs: false
