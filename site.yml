@@ -1,0 +1,50 @@
+---
+# Main Playbook - Ansible Security Baseline
+# Applies comprehensive security hardening to target systems
+
+- name: Apply Security Baseline
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    security_baseline_environment: "{{ lookup('env', 'ENVIRONMENT') | default('development', true) }}"
+
+  pre_tasks:
+    - name: Display target information
+      ansible.builtin.debug:
+        msg: |
+          Applying security baseline to: {{ ansible_hostname }}
+          Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Environment: {{ security_baseline_environment }}
+      tags: always
+
+    - name: Verify supported operating system
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == "Debian" or ansible_os_family == "RedHat"
+          - ansible_distribution_major_version | int >= 20
+        fail_msg: "This role only supports Ubuntu 20.04+ and RHEL 8+"
+        success_msg: "Operating system is supported"
+      tags: always
+
+  roles:
+    - role: security_baseline
+      tags:
+        - security
+        - hardening
+        - baseline
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ✓ Security baseline applied successfully!
+          ✓ Environment: {{ security_baseline_environment }}
+          ✓ Host: {{ ansible_hostname }}
+          
+          Please verify:
+          - SSH connectivity
+          - Application functionality
+          - Firewall rules
+      tags: always

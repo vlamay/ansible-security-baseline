@@ -1,0 +1,39 @@
+---
+galaxy_info:
+  role_name: security_baseline
+  author: Vladyslav Maidaniuk
+  description: Production-grade Linux security hardening based on CIS benchmarks
+  company: ""
+  
+  license: MIT
+  
+  min_ansible_version: "2.12"
+  
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal    # 20.04
+        - jammy    # 22.04
+        - noble    # 24.04
+  
+  galaxy_tags:
+    - security
+    - hardening
+    - cis
+    - compliance
+    - devsecops
+    - ssh
+    - firewall
+    - auditd
+    - fail2ban
+    - linux
+    - ubuntu
+
+dependencies: []
+
+# Collections required for this role
+collections:
+  - name: community.general
+    version: ">=3.0.0"
+  - name: ansible.posix
+    version: ">=1.0.0"

@@ -1,0 +1,48 @@
+# Example Inventory File for Ansible Security Baseline
+
+# =============================================================================
+# Production Servers
+# =============================================================================
+[production]
+prod-web-01.example.com ansible_user=ubuntu
+prod-web-02.example.com ansible_user=ubuntu
+prod-db-01.example.com ansible_user=ubuntu
+
+[production:vars]
+security_baseline_environment=production
+security_baseline_password_authentication=no
+security_baseline_enable_fail2ban=true
+security_baseline_firewall_allowed_ports=[22,443]
+
+# =============================================================================
+# Staging Servers
+# =============================================================================
+[staging]
+staging-web-01.example.com ansible_user=ubuntu
+staging-db-01.example.com ansible_user=ubuntu
+
+[staging:vars]
+security_baseline_environment=staging
+security_baseline_password_authentication=no
+security_baseline_enable_fail2ban=true
+security_baseline_firewall_allowed_ports=[22,80,443]
+
+# =============================================================================
+# Development Servers
+# =============================================================================
+[development]
+dev-01.example.com ansible_user=ubuntu
+dev-02.example.com ansible_user=ubuntu
+
+[development:vars]
+security_baseline_environment=development
+security_baseline_password_authentication=yes
+security_baseline_enable_fail2ban=false
+security_baseline_firewall_allowed_ports=[22,80,443,8080]
+
+# =============================================================================
+# All Servers
+# =============================================================================
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_private_key_file=~/.ssh/id_rsa

@@ -1,0 +1,116 @@
+---
+# Firewall Configuration Tasks (UFW)
+
+- name: Ensure UFW is installed
+  ansible.builtin.package:
+    name: "{{ security_baseline_firewall_package }}"
+    state: present
+  tags:
+    - packages
+    - firewall
+
+- name: Reset UFW to default settings
+  community.general.ufw:
+    state: reset
+  when: false  # Set to true only if you want to reset on every run
+  tags:
+    - firewall
+    - reset
+
+- name: Set UFW default policies
+  community.general.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: 'incoming', policy: 'deny' }
+    - { direction: 'outgoing', policy: 'allow' }
+    - { direction: 'routed', policy: 'deny' }
+  tags:
+    - firewall
+    - policy
+
+- name: Allow SSH before enabling firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ security_baseline_ssh_port }}"
+    proto: tcp
+    comment: "SSH access"
+  tags:
+    - firewall
+    - ssh
+
+- name: Allow configured ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: "Allowed port {{ item }}"
+  loop: "{{ security_baseline_firewall_allowed_ports }}"
+  when: item != security_baseline_ssh_port  # Skip SSH as it's already allowed
+  tags:
+    - firewall
+    - ports
+
+- name: Apply custom firewall rules
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port | default(omit) }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    from_ip: "{{ item.from_ip | default(omit) }}"
+    to_ip: "{{ item.to_ip | default(omit) }}"
+    comment: "{{ item.comment | default('Custom rule') }}"
+  loop: "{{ security_baseline_firewall_custom_rules }}"
+  when: security_baseline_firewall_custom_rules | length > 0
+  tags:
+    - firewall
+    - custom
+
+- name: Allow established connections
+  community.general.ufw:
+    rule: allow
+    direction: in
+    from_ip: any
+    to_ip: any
+    proto: any
+    comment: "Allow established connections"
+  failed_when: false
+  tags:
+    - firewall
+    - established
+
+- name: Enable UFW logging
+  community.general.ufw:
+    logging: 'on'
+  tags:
+    - firewall
+    - logging
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  tags:
+    - firewall
+    - enable
+
+- name: Check UFW status
+  ansible.builtin.command: ufw status verbose
+  register: ufw_status
+  changed_when: false
+  tags:
+    - firewall
+    - verify
+
+- name: Display UFW status
+  ansible.builtin.debug:
+    msg: "{{ ufw_status.stdout_lines }}"
+  tags:
+    - firewall
+    - verify
+
+- name: Ensure UFW starts on boot
+  ansible.builtin.service:
+    name: ufw
+    enabled: yes
+  tags:
+    - firewall
+    - service

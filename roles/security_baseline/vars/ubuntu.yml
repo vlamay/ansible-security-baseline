@@ -1,0 +1,56 @@
+---
+# Ubuntu/Debian specific variables for security_baseline role
+
+# =============================================================================
+# Service Names
+# =============================================================================
+security_baseline_ssh_service: ssh
+security_baseline_auditd_service: auditd
+security_baseline_fail2ban_service: fail2ban
+security_baseline_firewall_service: ufw
+
+# =============================================================================
+# Package Names
+# =============================================================================
+security_baseline_ssh_package: openssh-server
+security_baseline_auditd_package: auditd
+security_baseline_fail2ban_package: fail2ban
+security_baseline_firewall_package: ufw
+
+# =============================================================================
+# Configuration Paths
+# =============================================================================
+security_baseline_sshd_config: /etc/ssh/sshd_config
+security_baseline_sysctl_config: /etc/sysctl.d/99-security-baseline.conf
+security_baseline_audit_rules_path: /etc/audit/rules.d/security-baseline.rules
+security_baseline_fail2ban_config: /etc/fail2ban/jail.local
+security_baseline_pam_password_config: /etc/pam.d/common-password
+security_baseline_pam_auth_config: /etc/pam.d/common-auth
+security_baseline_login_defs_path: /etc/login.defs
+
+# =============================================================================
+# Log Paths
+# =============================================================================
+security_baseline_auth_log: /var/log/auth.log
+security_baseline_syslog: /var/log/syslog
+security_baseline_audit_log: /var/log/audit/audit.log
+
+# =============================================================================
+# Directory Paths
+# =============================================================================
+security_baseline_sshd_config_dir: /etc/ssh/sshd_config.d
+security_baseline_sysctl_dir: /etc/sysctl.d
+security_baseline_audit_rules_dir: /etc/audit/rules.d
+
+# =============================================================================
+# Package Manager
+# =============================================================================
+security_baseline_package_manager: apt
+security_baseline_package_update_cache: yes
+security_baseline_cache_valid_time: 3600
+
+# =============================================================================
+# auto-upgrades Configuration
+# =============================================================================
+security_baseline_auto_upgrades_config: /etc/apt/apt.conf.d/20auto-upgrades
+security_baseline_unattended_upgrades_config: /etc/apt/apt.conf.d/50unattended-upgrades

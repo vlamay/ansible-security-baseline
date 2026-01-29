@@ -1,0 +1,218 @@
+---
+# Main task file for security_baseline role
+# Orchestrates all security hardening tasks
+
+- name: Include OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family | lower }}.yml"
+  when: ansible_os_family == "Debian"
+  tags: always
+
+- name: Include Ubuntu variables for Debian family
+  ansible.builtin.include_vars: ubuntu.yml
+  when: ansible_os_family == "Debian"
+  tags: always
+
+- name: Display security baseline configuration
+  ansible.builtin.debug:
+    msg: |
+      Security Baseline Configuration:
+      --------------------------------
+      Environment: {{ security_baseline_environment }}
+      SSH Port: {{ security_baseline_ssh_port }}
+      Root Login: {{ security_baseline_permit_root_login }}
+      Password Auth: {{ security_baseline_password_authentication }}
+      Firewall: {{ security_baseline_configure_firewall }}
+      Auditd: {{ security_baseline_enable_auditd }}
+      Fail2ban: {{ security_baseline_enable_fail2ban }}
+      Sysctl Hardening: {{ security_baseline_sysctl_hardening }}
+  tags: always
+
+# =============================================================================
+# Backup existing configurations
+# =============================================================================
+- name: Backup existing configurations
+  when: security_baseline_backup_configs | default(true)
+  block:
+    - name: Ensure backup directory exists
+      ansible.builtin.file:
+        path: "{{ security_baseline_backup_directory }}"
+        state: directory
+        mode: '0700'
+        owner: root
+        group: root
+
+    - name: Backup SSH configuration
+      ansible.builtin.copy:
+        src: "{{ security_baseline_sshd_config }}"
+        dest: "{{ security_baseline_backup_directory }}/sshd_config.backup.{{ ansible_date_time.iso8601_basic_short }}"
+        remote_src: yes
+        mode: '0600'
+      failed_when: false
+  tags:
+    - backup
+    - ssh
+
+# =============================================================================
+# Install Security Packages
+# =============================================================================
+- name: Install security packages
+  when: security_baseline_install_security_packages | default(true)
+  block:
+    - name: Update package cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: "{{ security_baseline_cache_valid_time | default(3600) }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Install required security packages
+      ansible.builtin.package:
+        name: "{{ security_baseline_security_packages }}"
+        state: present
+      retries: 3
+      delay: 5
+  tags:
+    - packages
+    - install
+
+# =============================================================================
+# Apply Security Hardening Tasks
+# =============================================================================
+- name: Apply SSH hardening
+  ansible.builtin.include_tasks: ssh_hardening.yml
+  tags:
+    - ssh
+    - hardening
+
+- name: Apply system hardening (sysctl)
+  ansible.builtin.include_tasks: system_hardening.yml
+  when: security_baseline_sysctl_hardening | default(true)
+  tags:
+    - sysctl
+    - hardening
+
+- name: Configure auditd
+  ansible.builtin.include_tasks: auditd.yml
+  when: security_baseline_enable_auditd | default(true)
+  tags:
+    - auditd
+    - logging
+    - audit
+
+- name: Configure logging
+  ansible.builtin.include_tasks: logging.yml
+  when: security_baseline_configure_logging | default(true)
+  tags:
+    - logging
+    - syslog
+
+- name: Configure firewall
+  ansible.builtin.include_tasks: firewall.yml
+  when: security_baseline_configure_firewall | default(true)
+  tags:
+    - firewall
+    - ufw
+
+- name: Configure password policy
+  ansible.builtin.include_tasks: password_policy.yml
+  when: security_baseline_configure_password_policy | default(true)
+  tags:
+    - password
+    - pam
+    - policy
+
+# =============================================================================
+# Fail2ban Configuration
+# =============================================================================
+- name: Configure fail2ban
+  when: security_baseline_enable_fail2ban | default(true)
+  block:
+    - name: Ensure fail2ban is installed
+      ansible.builtin.package:
+        name: "{{ security_baseline_fail2ban_package }}"
+        state: present
+
+    - name: Deploy fail2ban jail configuration
+      ansible.builtin.template:
+        src: jail.local.j2
+        dest: "{{ security_baseline_fail2ban_config }}"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      notify: Restart fail2ban service
+
+    - name: Enable and start fail2ban service
+      ansible.builtin.service:
+        name: "{{ security_baseline_fail2ban_service }}"
+        state: started
+        enabled: yes
+  tags:
+    - fail2ban
+    - intrusion-prevention
+
+# =============================================================================
+# Automatic Updates
+# =============================================================================
+- name: Configure automatic security updates
+  when: security_baseline_enable_auto_updates | default(true)
+  block:
+    - name: Ensure unattended-upgrades is installed
+      ansible.builtin.package:
+        name: unattended-upgrades
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Enable automatic updates
+      ansible.builtin.copy:
+        dest: "{{ security_baseline_auto_upgrades_config }}"
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+        mode: '0644'
+      when: ansible_os_family == "Debian"
+  tags:
+    - updates
+    - auto-updates
+
+# =============================================================================
+# Final Verification
+# =============================================================================
+- name: Verify security baseline applied
+  block:
+    - name: Check SSH service status
+      ansible.builtin.service:
+        name: "{{ security_baseline_ssh_service }}"
+      register: ssh_service_status
+
+    - name: Verify SSH is running
+      ansible.builtin.assert:
+        that:
+          - ssh_service_status.status.ActiveState == "active"
+        fail_msg: "SSH service is not running!"
+        success_msg: "SSH service is running properly"
+
+    - name: Check firewall status
+      ansible.builtin.command: ufw status
+      register: ufw_status
+      changed_when: false
+      when: security_baseline_configure_firewall | default(true)
+
+    - name: Display firewall status
+      ansible.builtin.debug:
+        msg: "{{ ufw_status.stdout_lines }}"
+      when: 
+        - security_baseline_configure_firewall | default(true)
+        - ufw_status is defined
+  tags:
+    - verify
+    - validation
+
+- name: Generate compliance report
+  ansible.builtin.template:
+    src: compliance_report.j2
+    dest: "/var/log/security_baseline_report_{{ ansible_date_time.iso8601_basic_short }}.txt"
+    mode: '0600'
+  tags:
+    - report
+    - compliance

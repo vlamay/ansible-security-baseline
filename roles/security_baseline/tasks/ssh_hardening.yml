@@ -1,0 +1,123 @@
+---
+# SSH Hardening Tasks
+
+- name: Ensure SSH package is installed
+  ansible.builtin.package:
+    name: "{{ security_baseline_ssh_package }}"
+    state: present
+  tags:
+    - packages
+
+- name: Deploy hardened SSH configuration
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: "{{ security_baseline_sshd_config }}"
+    owner: root
+    group: root
+    mode: '0600'
+    backup: yes
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: Restart SSH service
+  tags:
+    - ssh
+    - config
+
+- name: Ensure SSH host keys have correct permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0600'
+  loop:
+    - /etc/ssh/ssh_host_rsa_key
+    - /etc/ssh/ssh_host_ecdsa_key
+    - /etc/ssh/ssh_host_ed25519_key
+  failed_when: false
+  tags:
+    - ssh
+    - permissions
+
+- name: Ensure SSH public keys have correct permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - /etc/ssh/ssh_host_rsa_key.pub
+    - /etc/ssh/ssh_host_ecdsa_key.pub
+    - /etc/ssh/ssh_host_ed25519_key.pub
+  failed_when: false
+  tags:
+    - ssh
+    - permissions
+
+- name: Set login banner
+  ansible.builtin.copy:
+    dest: /etc/issue.net
+    content: |
+      **************************************************************************
+      *                                                                        *
+      *  NOTICE TO USERS                                                       *
+      *                                                                        *
+      *  This computer system is for authorized use only. Users have no        *
+      *  expectation of privacy. By using this system, you consent to having   *
+      *  your activities monitored and recorded. Unauthorized use is           *
+      *  prohibited and may be subject to criminal and/or civil penalties.     *
+      *                                                                        *
+      **************************************************************************
+    mode: '0644'
+  tags:
+    - ssh
+    - banner
+
+- name: Configure SSH message of the day
+  ansible.builtin.copy:
+    dest: /etc/motd
+    content: |
+      ===========================================================================
+       System: {{ ansible_hostname }}
+       Environment: {{ security_baseline_environment }}
+       Security Baseline Applied
+      ===========================================================================
+      
+      All activities are logged and monitored.
+      
+    mode: '0644'
+  tags:
+    - ssh
+    - motd
+
+- name: Disable SSH protocol 1 (legacy check)
+  ansible.builtin.lineinfile:
+    path: "{{ security_baseline_sshd_config }}"
+    regexp: '^Protocol'
+    line: 'Protocol 2'
+    state: present
+  notify: Restart SSH service
+  tags:
+    - ssh
+    - protocol
+
+- name: Remove deprecated SSH options if present
+  ansible.builtin.lineinfile:
+    path: "{{ security_baseline_sshd_config }}"
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - '^UseRSAAuthentication'
+    - '^RhostsRSAAuthentication'
+    - '^RSAAuthentication'
+  notify: Restart SSH service
+  tags:
+    - ssh
+    - cleanup
+
+- name: Enable SSH service
+  ansible.builtin.service:
+    name: "{{ security_baseline_ssh_service }}"
+    state: started
+    enabled: yes
+  tags:
+    - ssh
+    - service

@@ -1,0 +1,35 @@
+---
+# handlers file for security_baseline
+
+- name: Restart SSH service
+  ansible.builtin.service:
+    name: "{{ security_baseline_ssh_service }}"
+    state: restarted
+  listen: "Restart SSH service"
+
+- name: Reload sysctl
+  ansible.builtin.command: sysctl --system
+  listen: "Reload sysctl"
+
+- name: Restart auditd service
+  ansible.builtin.service:
+    name: "{{ security_baseline_auditd_service }}"
+    state: restarted
+  listen: "Restart auditd service"
+
+- name: Restart fail2ban service
+  ansible.builtin.service:
+    name: "{{ security_baseline_fail2ban_service }}"
+    state: restarted
+  listen: "Restart fail2ban service"
+
+- name: Restart rsyslog service
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+  listen: "Restart rsyslog service"
+
+- name: Reload UFW
+  community.general.ufw:
+    state: reloaded
+  listen: "Reload UFW"

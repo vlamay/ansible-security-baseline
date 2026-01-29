@@ -1,0 +1,101 @@
+---
+# Auditd Configuration Tasks
+
+- name: Ensure auditd is installed
+  ansible.builtin.package:
+    name: "{{ security_baseline_auditd_package }}"
+    state: present
+  tags:
+    - packages
+    - auditd
+
+- name: Ensure audispd-plugins is installed
+  ansible.builtin.package:
+    name: audispd-plugins
+    state: present
+  when: ansible_os_family == "Debian"
+  tags:
+    - packages
+    - auditd
+
+- name: Ensure audit rules directory exists
+  ansible.builtin.file:
+    path: "{{ security_baseline_audit_rules_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+  tags:
+    - auditd
+    - directory
+
+- name: Deploy audit rules
+  ansible.builtin.template:
+    src: audit.rules.j2
+    dest: "{{ security_baseline_audit_rules_path }}"
+    owner: root
+    group: root
+    mode: '0640'
+    backup: yes
+  notify: Restart auditd service
+  tags:
+    - auditd
+    - rules
+
+- name: Configure auditd.conf for log rotation
+  ansible.builtin.lineinfile:
+    path: /etc/audit/auditd.conf
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+  loop:
+    - { key: 'max_log_file', value: '50' }           # Max log file size in MB
+    - { key: 'max_log_file_action', value: 'rotate' }
+    - { key: 'num_logs', value: '5' }                # Number of log files to keep
+    - { key: 'space_left', value: '75' }             # MB of disk space left when warning
+    - { key: 'space_left_action', value: 'SYSLOG' }
+    - { key: 'admin_space_left', value: '50' }
+    - { key: 'admin_space_left_action', value: 'SUSPEND' }
+    - { key: 'disk_full_action', value: 'SUSPEND' }
+    - { key: 'disk_error_action', value: 'SUSPEND' }
+  notify: Restart auditd service
+  tags:
+    - auditd
+    - config
+
+- name: Configure audit log permissions
+  ansible.builtin.file:
+    path: /var/log/audit
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+  tags:
+    - auditd
+    - permissions
+
+- name: Enable and start auditd service
+  ansible.builtin.service:
+    name: "{{ security_baseline_auditd_service }}"
+    state: started
+    enabled: yes
+  tags:
+    - auditd
+    - service
+
+- name: Verify audit rules are loaded
+  ansible.builtin.command: auditctl -l
+  register: audit_rules_check
+  changed_when: false
+  failed_when: false
+  tags:
+    - auditd
+    - verify
+
+- name: Display loaded audit rules count
+  ansible.builtin.debug:
+    msg: "Loaded {{ audit_rules_check.stdout_lines | length }} audit rules"
+  when: audit_rules_check is defined
+  tags:
+    - auditd
+    - verify

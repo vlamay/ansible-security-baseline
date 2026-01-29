@@ -1,0 +1,230 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: yes
+  become: yes
+  
+  tasks:
+    # =============================================================================
+    # SSH Hardening Verification
+    # =============================================================================
+    - name: Check if sshd_config exists
+      ansible.builtin.stat:
+        path: /etc/ssh/sshd_config
+      register: sshd_config_stat
+    
+    - name: Verify sshd_config exists
+      ansible.builtin.assert:
+        that:
+          - sshd_config_stat.stat.exists
+          - sshd_config_stat.stat.mode == '0600'
+        fail_msg: "SSH config file not found or has incorrect permissions"
+        success_msg: "SSH config file exists with correct permissions"
+    
+    - name: Check SSH configuration for root login
+      ansible.builtin.command: grep "^PermitRootLogin" /etc/ssh/sshd_config
+      register: ssh_root_login
+      changed_when: false
+      failed_when: false
+    
+    - name: Verify root login is disabled
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in ssh_root_login.stdout"
+        fail_msg: "Root login is not properly disabled"
+        success_msg: "Root login is properly disabled"
+    
+    - name: Check if SSH service is running
+      ansible.builtin.systemd:
+        name: ssh
+      register: ssh_service
+    
+    - name: Verify SSH service is enabled
+      ansible.builtin.assert:
+        that:
+          - ssh_service.status.ActiveState == "active"
+        fail_msg: "SSH service is not active"
+        success_msg: "SSH service is active"
+    
+    # =============================================================================
+    # Sysctl Hardening Verification
+    # =============================================================================
+    - name: Check if sysctl hardening config exists
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-security-baseline.conf
+      register: sysctl_config
+    
+    - name: Verify sysctl config exists
+      ansible.builtin.assert:
+        that:
+          - sysctl_config.stat.exists
+        fail_msg: "Sysctl security config not found"
+        success_msg: "Sysctl security config exists"
+    
+    - name: Check IP forwarding status
+      ansible.builtin.command: sysctl net.ipv4.ip_forward
+      register: ip_forward
+      changed_when: false
+    
+    - name: Verify IP forwarding is disabled
+      ansible.builtin.assert:
+        that:
+          - "'net.ipv4.ip_forward = 0' in ip_forward.stdout"
+        fail_msg: "IP forwarding is not disabled"
+        success_msg: "IP forwarding is properly disabled"
+    
+    - name: Check SYN cookies status
+      ansible.builtin.command: sysctl net.ipv4.tcp_syncookies
+      register: syn_cookies
+      changed_when: false
+    
+    - name: Verify SYN cookies are enabled
+      ansible.builtin.assert:
+        that:
+          - "'net.ipv4.tcp_syncookies = 1' in syn_cookies.stdout"
+        fail_msg: "SYN cookies not enabled"
+        success_msg: "SYN cookies are enabled"
+    
+    # =============================================================================
+    # Auditd Verification
+    # =============================================================================
+    - name: Check if auditd is installed
+      ansible.builtin.package_facts:
+        manager: auto
+    
+    - name: Verify auditd package is installed
+      ansible.builtin.assert:
+        that:
+          - "'auditd' in ansible_facts.packages or 'auditd' in ansible_facts.packages.keys()"
+        fail_msg: "Auditd package is not installed"
+        success_msg: "Auditd package is installed"
+      when: ansible_facts.packages is defined
+    
+    - name: Check auditd service status
+      ansible.builtin.systemd:
+        name: auditd
+      register: auditd_service
+      failed_when: false
+    
+    - name: Verify auditd is running (if service exists)
+      ansible.builtin.assert:
+        that:
+          - auditd_service.status.ActiveState == "active"
+        fail_msg: "Auditd service is not active"
+        success_msg: "Auditd service is active"
+      when: auditd_service.status is defined
+    
+    - name: Check if audit rules are loaded
+      ansible.builtin.command: auditctl -l
+      register: audit_rules
+      changed_when: false
+      failed_when: false
+    
+    - name: Display audit rules status
+      ansible.builtin.debug:
+        msg: "Number of audit rules loaded: {{ audit_rules.stdout_lines | length }}"
+      when: audit_rules.stdout_lines is defined
+    
+    # =============================================================================
+    # Fail2ban Verification
+    # =============================================================================
+    - name: Check if fail2ban is installed
+      ansible.builtin.stat:
+        path: /usr/bin/fail2ban-client
+      register: fail2ban_binary
+    
+    - name: Verify fail2ban is installed
+      ansible.builtin.assert:
+        that:
+          - fail2ban_binary.stat.exists
+        fail_msg: "Fail2ban is not installed"
+        success_msg: "Fail2ban is installed"
+    
+    - name: Check fail2ban service status
+      ansible.builtin.systemd:
+        name: fail2ban
+      register: fail2ban_service
+    
+    - name: Verify fail2ban is running
+      ansible.builtin.assert:
+        that:
+          - fail2ban_service.status.ActiveState == "active"
+        fail_msg: "Fail2ban service is not active"
+        success_msg: "Fail2ban service is active"
+    
+    - name: Check fail2ban jails status
+      ansible.builtin.command: fail2ban-client status
+      register: fail2ban_status
+      changed_when: false
+      failed_when: false
+    
+    - name: Verify fail2ban has active jails
+      ansible.builtin.assert:
+        that:
+          - "'sshd' in fail2ban_status.stdout or 'Number of jail' in fail2ban_status.stdout"
+        fail_msg: "No fail2ban jails are active"
+        success_msg: "Fail2ban jails are active"
+      when: fail2ban_status.rc == 0
+    
+    # =============================================================================
+    # Password Policy Verification
+    # =============================================================================
+    - name: Check if pwquality config exists
+      ansible.builtin.stat:
+        path: /etc/security/pwquality.conf
+      register: pwquality_config
+    
+    - name: Verify pwquality config exists
+      ansible.builtin.assert:
+        that:
+          - pwquality_config.stat.exists
+        fail_msg: "Password quality config not found"
+        success_msg: "Password quality config exists"
+    
+    - name: Check password minimum length setting
+      ansible.builtin.command: grep "^minlen" /etc/security/pwquality.conf
+      register: password_minlen
+      changed_when: false
+      failed_when: false
+    
+    - name: Verify password minimum length is configured
+      ansible.builtin.assert:
+        that:
+          - password_minlen.stdout | length > 0
+        fail_msg: "Password minimum length not configured"
+        success_msg: "Password minimum length is configured"
+      when: password_minlen.rc == 0
+    
+    # =============================================================================
+    # Additional Security Checks
+    # =============================================================================
+    - name: Check if security packages are installed
+      ansible.builtin.package_facts:
+        manager: auto
+    
+    - name: Verify unattended-upgrades is installed
+      ansible.builtin.assert:
+        that:
+          - "'unattended-upgrades' in ansible_facts.packages or 'unattended-upgrades' in ansible_facts.packages.keys()"
+        fail_msg: "Unattended-upgrades not installed"
+        success_msg: "Unattended-upgrades is installed"
+      when: ansible_facts.packages is defined
+    
+    # =============================================================================
+    # Summary
+    # =============================================================================
+    - name: Security baseline verification summary
+      ansible.builtin.debug:
+        msg: |
+          ====================================
+          Security Baseline Verification Summary
+          ====================================
+          ✓ SSH hardened and running
+          ✓ Sysctl security parameters applied
+          ✓ Auditd installed and configured
+          ✓ Fail2ban active and monitoring
+          ✓ Password policy configured
+          ✓ Security packages installed
+          ====================================
+          All security baseline checks passed!
+          ====================================

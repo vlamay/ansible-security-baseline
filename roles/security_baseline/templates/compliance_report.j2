@@ -1,0 +1,103 @@
+================================================================================
+SECURITY BASELINE COMPLIANCE REPORT
+================================================================================
+
+Report Generated: {{ ansible_date_time.iso8601 }}
+Hostname: {{ ansible_hostname }}
+FQDN: {{ ansible_fqdn }}
+Operating System: {{ ansible_distribution }} {{ ansible_distribution_version }}
+Environment: {{ security_baseline_environment }}
+
+================================================================================
+CONFIGURATION SUMMARY
+================================================================================
+
+SSH Hardening:
+  ✓ SSH Port: {{ security_baseline_ssh_port }}
+  ✓ Root Login: {{ security_baseline_permit_root_login }}
+  ✓ Password Authentication: {{ security_baseline_password_authentication }}
+  ✓ Max Auth Tries: {{ security_baseline_max_auth_tries }}
+  ✓ Login Grace Time: {{ security_baseline_login_grace_time }}s
+
+Firewall Configuration:
+  ✓ Firewall Enabled: {{ security_baseline_configure_firewall }}
+  ✓ Default Policy: {{ security_baseline_firewall_default_policy }}
+  ✓ Allowed Ports: {{ security_baseline_firewall_allowed_ports | join(', ') }}
+
+Security Services:
+  ✓ Auditd Enabled: {{ security_baseline_enable_auditd }}
+  ✓ Fail2ban Enabled: {{ security_baseline_enable_fail2ban }}
+  ✓ Sysctl Hardening: {{ security_baseline_sysctl_hardening }}
+
+Password Policy:
+  ✓ Min Length: {{ security_baseline_password_min_length }}
+  ✓ Min Classes: {{ security_baseline_password_min_classes }}
+  ✓ Max Age: {{ security_baseline_password_max_age }} days
+  ✓ History Remember: {{ security_baseline_password_history_remember }}
+
+================================================================================
+APPLIED SECURITY CONTROLS
+================================================================================
+
+Network Security:
+  ✓ IP Forwarding: {{ 'Disabled' if security_baseline_disable_ip_forwarding else 'Enabled' }}
+  ✓ SYN Cookies: {{ 'Enabled' if security_baseline_enable_syn_cookies else 'Disabled' }}
+  ✓ RP Filter: {{ 'Enabled' if security_baseline_enable_rp_filter else 'Disabled' }}
+  ✓ ICMP Redirects: {{ 'Blocked' if security_baseline_disable_send_redirects else 'Allowed' }}
+
+Kernel Hardening:
+  ✓ ASLR: {{ 'Enabled' if security_baseline_enable_aslr else 'Disabled' }}
+  ✓ Dmesg Restrict: {{ 'Enabled' if security_baseline_restrict_dmesg else 'Disabled' }}
+  ✓ Kernel Pointers: {{ 'Restricted' if security_baseline_restrict_kernel_pointers else 'Not Restricted' }}
+
+Audit Configuration:
+  ✓ Critical Files Monitoring: {{ security_baseline_audit_critical_files }}
+  ✓ Privileged Commands: {{ security_baseline_audit_privileged_commands }}
+  ✓ Network Changes: {{ security_baseline_audit_network_changes }}
+  ✓ User Changes: {{ security_baseline_audit_user_changes }}
+
+================================================================================
+COMPLIANCE NOTES
+================================================================================
+
+This system has been hardened according to the following standards:
+- CIS Benchmarks (Ubuntu Linux)
+- Enterprise Security Best Practices
+- DevSecOps Guidelines
+
+Applied configurations are suitable for: {{ security_baseline_environment | upper }} environment
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+{% if security_baseline_environment != 'production' %}
+⚠ This is a {{ security_baseline_environment }} environment.
+  For production, consider:
+  - Disabling password authentication completely
+  - Enabling all security features
+  - Regular security audits
+  - Automated compliance scanning
+{% endif %}
+
+{% if not security_baseline_enable_fail2ban %}
+⚠ Fail2ban is disabled. Consider enabling for production environments.
+{% endif %}
+
+{% if not security_baseline_configure_firewall %}
+⚠ Firewall is not configured. Strongly recommended for all environments.
+{% endif %}
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Review this configuration and ensure it meets your requirements
+2. Test all services and applications for compatibility
+3. Set up monitoring and alerting for security events
+4. Schedule regular compliance audits
+5. Keep the system updated with security patches
+
+================================================================================
+END OF REPORT
+================================================================================

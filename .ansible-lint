@@ -1,0 +1,38 @@
+---
+# Ansible-lint configuration
+# See: https://ansible-lint.readthedocs.io/configuring/
+
+profile: production
+
+# Enable specific rule checking
+enable_list:
+  - yaml
+
+# Exclude paths from linting
+exclude_paths:
+  - .github/
+  - .git/
+  - molecule/
+  - '*.md'
+  - '*.txt'
+
+# Skip specific rules
+skip_list:
+  - yaml[line-length]  # Allow long lines in templates
+  - name[casing]       # Allow flexible naming
+
+# Define allowed modules
+use_default_rules: true
+
+# Warn about deprecated features
+warn_list:
+  - experimental
+  - fqcn-builtins
+
+# Configure offline mode (don't download Galaxy collections)
+offline: false
+
+# Ansible version settings
+# parseable: true
+# quiet: false
+# verbosity: 1
