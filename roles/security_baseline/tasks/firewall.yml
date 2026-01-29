@@ -88,7 +88,10 @@
 - name: Enable UFW
   community.general.ufw:
     state: enabled
-  ignore_errors: "{{ ansible_virtualization_type == 'docker' }}"
+  register: security_baseline_ufw_enable_result
+  failed_when:
+    - security_baseline_ufw_enable_result.failed
+    - ansible_virtualization_type != 'docker'
   tags:
     - firewall
     - enable

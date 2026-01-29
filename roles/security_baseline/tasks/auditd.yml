@@ -79,10 +79,10 @@
     name: "{{ security_baseline_auditd_service }}"
     state: started
     enabled: yes
-  failed_when: 
+  register: security_baseline_auditd_service_result
+  failed_when:
+    - security_baseline_auditd_service_result.failed
     - ansible_virtualization_type != 'docker'
-    - false # Placeholder to keep the list structure if needed, but really we want to ignore in docker
-  ignore_errors: "{{ ansible_virtualization_type == 'docker' }}"
   tags:
     - auditd
     - service
