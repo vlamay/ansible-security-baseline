@@ -211,7 +211,7 @@
 - name: Generate compliance report
   ansible.builtin.template:
     src: compliance_report.j2
-    dest: "/var/log/security_baseline_report_{{ ansible_date_time.iso8601_basic_short }}.txt"
+    dest: "/var/log/security_baseline_report_latest.txt"
     mode: '0600'
   tags:
     - report

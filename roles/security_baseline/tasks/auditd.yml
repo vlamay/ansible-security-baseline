@@ -45,7 +45,7 @@
 - name: Configure auditd.conf for log rotation
   ansible.builtin.lineinfile:
     path: /etc/audit/auditd.conf
-    regexp: "^{{ item.key }}"
+    regexp: "^{{ item.key }}\\s*="
     line: "{{ item.key }} = {{ item.value }}"
     state: present
   loop:

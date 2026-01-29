@@ -81,6 +81,7 @@
 - name: Enable UFW logging
   community.general.ufw:
     logging: 'on'
+  when: ansible_virtualization_type != 'docker'
   tags:
     - firewall
     - logging

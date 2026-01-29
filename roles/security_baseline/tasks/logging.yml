@@ -84,6 +84,7 @@
     owner: root
     group: adm
     mode: '0750'
+  when: ansible_virtualization_type != 'docker'
   loop:
     - /var/log
     - /var/log/audit
