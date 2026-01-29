@@ -99,16 +99,6 @@
     - ssh
     - motd
 
-- name: Disable SSH protocol 1 (legacy check)
-  ansible.builtin.lineinfile:
-    path: "{{ security_baseline_sshd_config }}"
-    regexp: '^Protocol'
-    line: 'Protocol 2'
-    state: present
-  notify: Restart SSH service
-  tags:
-    - ssh
-    - protocol
 
 - name: Remove deprecated SSH options if present
   ansible.builtin.lineinfile:
