@@ -5,16 +5,11 @@
 #
 # WARNING: This file is managed by Ansible. Local changes will be overwritten.
 
-# =============================================================================
-# Basic Configuration
-# =============================================================================
+# Port and Listen Address
 Port {{ security_baseline_ssh_port }}
 AddressFamily any
 ListenAddress 0.0.0.0
 ListenAddress ::
-
-# Protocol version (v2 only)
-Protocol 2
 
 # =============================================================================
 # Host Keys
@@ -96,13 +91,6 @@ PermitTunnel no
 # =============================================================================
 SyslogFacility AUTH
 LogLevel VERBOSE
-
-# =============================================================================
-# Security Features
-# =============================================================================
-
-# Use privilege separation
-UsePrivilegeSeparation sandbox
 
 # Strict mode (check file permissions)
 StrictModes yes
